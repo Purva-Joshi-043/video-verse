@@ -1,12 +1,23 @@
 const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
-const db = require("../models/database");
-
+const { getDb } = require("../models/database");
 const ffmpeg = require("fluent-ffmpeg");
+const { randomUUID } = require("crypto");
+
+// Configure Multer storage with original file extension
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${Date.now()}${ext}`);
+  },
+});
 
 const upload = multer({
-  dest: "uploads/",
+  storage: storage,
   limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB limit
 });
 
@@ -21,15 +32,16 @@ const validateVideo = (filePath) =>
 
 const uploadVideo = async (req, res) => {
   try {
+    const db = await getDb();
     const file = req.file;
     const duration = await validateVideo(file.path);
 
-    if (duration < 5 || duration > 35) {
+    if (duration < 5 || duration > 25) {
       fs.unlinkSync(file.path);
       return res.status(400).json({ message: "Invalid video duration." });
     }
 
-    const stmt = db.prepare(
+    const stmt = await db.prepare(
       "INSERT INTO videos (filename, path, duration, size, created_at, title) VALUES (?, ?, ?, ?, ?, ?)"
     );
 
@@ -50,7 +62,8 @@ const uploadVideo = async (req, res) => {
   }
 };
 
-const trimVideo = (req, res) => {
+const trimVideo = async (req, res) => {
+  const db = await getDb();
   const { id, start, end } = req.body;
 
   db.get("SELECT * FROM videos WHERE id = ?", [id], (err, video) => {
@@ -63,8 +76,11 @@ const trimVideo = (req, res) => {
       .setStartTime(start)
       .setDuration(end - start)
       .output(outputFile)
-      .on("end", () => {
-        db.run("UPDATE videos SET path = ? WHERE id = ?", [outputFile, id]);
+      .on("end", async () => {
+        await db.run("UPDATE videos SET path = ? WHERE id = ?", [
+          outputFile,
+          id,
+        ]);
         res.status(200).json({ message: "Video trimmed successfully." });
       })
       .on("error", (err) => {
@@ -74,60 +90,63 @@ const trimVideo = (req, res) => {
   });
 };
 
-const mergeVideos = (req, res) => {
+const mergeVideos = async (req, res) => {
+  const db = await getDb();
   const { videoIds } = req.body;
-
-  const paths = [];
-  videoIds.forEach((id, index) => {
-    db.get("SELECT * FROM videos WHERE id = ?", [id], (err, video) => {
-      if (err || !video)
+  const paths = await Promise.all(
+    videoIds.map(async (id) => {
+      const video = await db.get("SELECT * FROM videos WHERE id = ?", [id]);
+      if (!video) {
         return res
           .status(404)
-          .json({ message: `Video with ID ${id} not found.` });
-
-      paths.push(video.path);
-
-      if (index === videoIds.length - 1) {
-        const outputFile = `uploads/merged_${Date.now()}.mp4`;
-        const ffmpegCommand = ffmpeg();
-
-        paths.forEach((p) => ffmpegCommand.input(p));
-        ffmpegCommand
-          .on("end", () => {
-            db.run(
-              "INSERT INTO videos (filename, path, duration, size, created_at) VALUES (?, ?, ?, ?, ?)",
-              [
-                path.basename(outputFile),
-                outputFile,
-                null,
-                null,
-                new Date().toISOString(),
-              ]
-            );
-            res.status(200).json({ message: "Videos merged successfully." });
-          })
-          .on("error", (err) => {
-            res.status(500).json({ message: "Error merging videos." });
-          })
-          .mergeToFile(outputFile);
+          .json({ message: `Video not found with id - ${id}` });
       }
-    });
-  });
+      return video.path;
+    })
+  );
+
+  const outputFile = `uploads/merged_${Date.now()}.mp4`;
+  const ffmpegCommand = ffmpeg();
+
+  console.log("\n hhu ", paths, "\n");
+  paths.forEach((p) => ffmpegCommand.input(p));
+  ffmpegCommand
+    .on("end", async () => {
+      await db.run(
+        "INSERT INTO videos (filename, path, duration, size, created_at) VALUES (?, ?, ?, ?, ?)",
+        [
+          path.basename(outputFile),
+          outputFile,
+          null,
+          null,
+          new Date().toISOString(),
+        ]
+      );
+      res.status(200).json({ message: "Videos merged successfully." });
+    })
+    .on("error", (err) => {
+      console.log(err);
+      res.status(500).json({ message: "Error merging videos." });
+    })
+    .mergeToFile(outputFile);
 };
 
-const shareVideoLink = (req, res) => {
+const shareVideoLink = async (req, res) => {
+  const db = await getDb();
   const { id, expiry } = req.body;
 
-  db.get("SELECT * FROM videos WHERE id = ?", [id], (err, video) => {
+  db.get("SELECT * FROM videos WHERE id = ?", [id], async (err, video) => {
     if (err || !video)
       return res.status(404).json({ message: "Video not found." });
 
-    const link = `http://localhost:${process.env.PORT}/videos/watch/${id}`;
     const expiryDate = new Date(Date.now() + expiry * 1000).toISOString();
 
-    db.run(
-      "INSERT INTO shared_links (video_id, link, expires_at) VALUES (?, ?, ?)",
-      [id, link, expiryDate]
+    const uuid = randomUUID();
+    const link = `http://localhost:${process.env.PORT}/videos/watch/${uuid}`;
+
+    await db.run(
+      "INSERT INTO shared_links (video_id, link_id, link, expires_at) VALUES (?, ?, ?, ?)",
+      [id, uuid, link, expiryDate]
     );
 
     res.status(201).json({ link, expires_at: expiryDate });
@@ -137,7 +156,7 @@ const shareVideoLink = (req, res) => {
 const watchVideo = (req, res) => {
   const { id } = req.params;
 
-  db.get("SELECT * FROM shared_links WHERE video_id = ?", [id], (err, link) => {
+  db.get("SELECT * FROM shared_links WHERE link_id = ?", [id], (err, link) => {
     if (err || !link)
       return res.status(404).json({ message: "Link not found." });
 
@@ -145,12 +164,16 @@ const watchVideo = (req, res) => {
       return res.status(403).json({ message: "Link expired." });
     }
 
-    db.get("SELECT * FROM videos WHERE id = ?", [id], (err, video) => {
-      if (err || !video)
-        return res.status(404).json({ message: "Video not found." });
+    db.get(
+      "SELECT * FROM videos WHERE id = ?",
+      [link.video_id],
+      (err, video) => {
+        if (err || !video)
+          return res.status(404).json({ message: "Video not found." });
 
-      res.sendFile(path.resolve(video.path));
-    });
+        res.sendFile(path.resolve(video.path));
+      }
+    );
   });
 };
 

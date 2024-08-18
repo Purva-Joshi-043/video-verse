@@ -5,8 +5,9 @@
 1. Clone the repository.
 2. Install dependencies: `npm install`
 3. Set up environment variables in `.env`.
-4. Run the server: `npm start`
-5. Run the test suite: `npm test`
+4. Install FFmpeg Locally: `brew install ffmpeg`.
+5. Run the server: `npm start`
+6. Run the test suite: `npm test`
 
 ## API Endpoints
 
@@ -15,10 +16,6 @@
 - `POST /videos/merge`: Merge multiple video files.
 - `POST /videos/share`: Generate a sharable link with an expiry time.
 - `GET /videos/watch/:id`: Access a video via the generated link.
-
-## Swagger Docs
-
-Visit `/api-docs` for the Swagger UI documentation.
 
 ## Assumptions
 
