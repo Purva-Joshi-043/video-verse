@@ -1,0 +1,191 @@
+{
+	"info": {
+		"_postman_id": "a2b15ba6-e6b1-44fc-a44a-7883735df9ee",
+		"name": "video verse",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "30908043"
+	},
+	"item": [
+		{
+			"name": "upload",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "your_static_api_token",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "video",
+							"type": "file",
+							"src": "/Users/purva.joshi/Downloads/sample.mp4"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{url}}/videos/upload",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"videos",
+						"upload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "trim",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "your_static_api_token",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"1\",\n    \"start\":6,\n    \"end\":20\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/videos/trim",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"videos",
+						"trim"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "share",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "your_static_api_token",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"1\",\n    \"expiry\": 60\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/videos/share",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"videos",
+						"share"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "watch",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "your_static_api_token",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": \"1\",\n    \"expiry\": 60\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/videos/share",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"videos",
+						"share"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "merge",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "your_static_api_token",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"videoIds\":[1,2,3]\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{url}}/videos/merge",
+					"host": [
+						"{{url}}"
+					],
+					"path": [
+						"videos",
+						"merge"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
