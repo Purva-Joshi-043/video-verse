@@ -4,7 +4,13 @@
 
 1. Clone the repository.
 2. Install dependencies: `npm install`
-3. Set up environment variables in `.env`.
+3. Set up environment variables:
+   - Create a `.env` file in the root directory of the project.
+   - Add the following variables to the `.env` file:
+     ```env
+     PORT=3000
+     API_TOKEN=your_api_token_here
+     ```
 4. Install FFmpeg Locally: `brew install ffmpeg`.
 5. Run the server: `npm start`
 6. Run the test suite: `npm test`
@@ -27,3 +33,5 @@
 
 - [Multer Documentation](https://github.com/expressjs/multer)
 - [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
+- [FFmpeg npm Documentation](https://www.npmjs.com/package/ffmpeg)
+- [promised-sqlite npm Documentation](https://www.npmjs.com/package/promised-sqlite3)
